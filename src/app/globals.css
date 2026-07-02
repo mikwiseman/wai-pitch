@@ -1,0 +1,107 @@
+@import 'tailwindcss';
+
+/* ─────────────────────────────────────────────────────────────────────────
+   wai-pitch design language: Pitch's product craft × Anthropic's Claude look.
+   Warm ivory paper, one rationed clay accent, hairlines over shadows,
+   editorial serif display. Tokens are the contract — see DESIGN.md.
+   ───────────────────────────────────────────────────────────────────────── */
+
+@theme {
+  /* Claude palette */
+  --color-paper: #faf9f5;      /* app + slide ivory */
+  --color-paper-2: #f0ece1;    /* raised panels */
+  --color-paper-3: #e9e4d8;    /* hover fills */
+  --color-ink: #1a1a18;        /* near-black text */
+  --color-ink-2: #5f5c54;      /* secondary text */
+  --color-ink-3: #8b877c;      /* tertiary / meta */
+  --color-line: #e6e2d9;       /* hairlines */
+  --color-line-2: #d8d3c7;     /* stronger hairline */
+  --color-clay: #cc785c;       /* the one accent */
+  --color-clay-ink: #b5613f;   /* accent text/hover */
+  --color-clay-wash: #f4e6df;  /* accent tint */
+  --color-white: #ffffff;
+
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-serif: var(--font-fraunces), Georgia, 'Times New Roman', serif;
+
+  --shadow-card: 0 1px 2px rgba(26, 26, 24, 0.04), 0 8px 24px -12px rgba(26, 26, 24, 0.12);
+  --shadow-pop: 0 8px 40px -8px rgba(26, 26, 24, 0.22);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection { background: var(--color-clay-wash); }
+
+/* Type ladder */
+.t-display { font-family: var(--font-serif); font-weight: 400; letter-spacing: -0.02em; line-height: 1.02; }
+.t-title { font-family: var(--font-serif); font-weight: 400; letter-spacing: -0.01em; }
+
+/* Focus ring */
+:where(button, a, input, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-clay);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Thin scrollbars */
+* { scrollbar-width: thin; scrollbar-color: var(--color-line-2) transparent; }
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-thumb { background: var(--color-line-2); border-radius: 999px; border: 2px solid transparent; background-clip: content-box; }
+*::-webkit-scrollbar-thumb:hover { background: var(--color-ink-3); }
+
+/* Reusable atoms */
+.card {
+  background: var(--color-white);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 38px; padding: 0 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-line-2);
+  background: var(--color-white);
+  color: var(--color-ink);
+  font-size: 14px; font-weight: 500;
+  cursor: pointer; user-select: none;
+  transition: background 0.12s, border-color 0.12s, transform 0.06s;
+}
+.btn:hover { background: var(--color-paper-2); }
+.btn:active { transform: translateY(0.5px); }
+.btn-primary { background: var(--color-ink); border-color: var(--color-ink); color: var(--color-paper); }
+.btn-primary:hover { background: #000; }
+.btn-accent { background: var(--color-clay); border-color: var(--color-clay); color: #fff; }
+.btn-accent:hover { background: var(--color-clay-ink); }
+.btn-ghost { border-color: transparent; background: transparent; }
+.btn-ghost:hover { background: var(--color-paper-3); }
+.btn-icon { width: 38px; padding: 0; justify-content: center; }
+
+.input {
+  height: 38px; padding: 0 12px;
+  border: 1px solid var(--color-line-2);
+  border-radius: var(--radius);
+  background: var(--color-white);
+  font-size: 14px; color: var(--color-ink);
+  width: 100%;
+}
+.input:focus { outline: none; border-color: var(--color-clay); box-shadow: 0 0 0 3px var(--color-clay-wash); }
+
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.animate-fade-in { animation: fade-in 0.18s ease both; }

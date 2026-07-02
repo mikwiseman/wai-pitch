@@ -1,0 +1,38 @@
+import type { SVGProps } from 'react';
+
+const s = (props: SVGProps<SVGSVGElement>) => ({ width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, ...props });
+
+export const Icon = {
+  Home: (p: SVGProps<SVGSVGElement>) => <svg {...s(p)}><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V21h14V9.5" /></svg>,
+  Folder: (p: SVGProps<SVGSVGElement>) => <svg {...s(p)}><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>,
+  Plus: (p: SVGProps<SVGSVGElement>) => <svg {...s(p)}><path d="M12 5v14M5 12h14" /></svg>,
+  Search: (p: SVGProps<SVGSVGElement>) => <svg {...s(p)}><circle cx="11" cy="11" r="7" /><path d="m20 20-3.2-3.2" /></svg>,
+  Trash: (p: SVGProps<SVGSVGElement>) => <svg {...s(p)}><path d="M4 7h16M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13" /></svg>,
+  Dots: (p: SVGProps<SVGSVGElement>) => <svg {...s(p)}><circle cx="5" cy="12" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="19" cy="12" r="1.6" /></svg>,
+  Play: (p: SVGProps<SVGSVGElement>) => <svg {...s(p)}><path d="M7 5v14l12-7z" fill="currentColor" stroke="none" /></svg>,
+  Sparkle: (p: SVGProps<SVGSVGElement>) => <svg {...s(p)}><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" /><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" /></svg>,
+  Type: (p: SVGProps<SVGSVGElement>) => <svg {...s(p)}><path d="M4 7V5h16v2M9 5v14M15 5v14M7 19h4M13 19h4" /></svg>,
+  Image: (p: SVGProps<SVGSVGElement>) => <svg {...s(p)}><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="8.5" cy="9.5" r="1.6" /><path d="m4 18 5-5 4 4 3-3 4 4" /></svg>,
+  Shape: (p: SVGProps<SVGSVGElement>) => <svg {...s(p)}><rect x="3" y="3" width="9" height="9" rx="1.5" /><circle cx="16.5" cy="16.5" r="4.5" /></svg>,
+  Table: (p: SVGProps<SVGSVGElement>) => <svg {...s(p)}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 10h18M3 15h18M9 4v16M15 4v16" /></svg>,
+  Embed: (p: SVGProps<SVGSVGElement>) => <svg {...s(p)}><path d="m9 8-5 4 5 4M15 8l5 4-5 4" /></svg>,
+  Chart: (p: SVGProps<SVGSVGElement>) => <svg {...s(p)}><path d="M4 20V4M4 20h16M8 16v-4M12 16V8M16 16v-6" /></svg>,
+  Chevron: (p: SVGProps<SVGSVGElement>) => <svg {...s(p)}><path d="m9 6 6 6-6 6" /></svg>,
+  ChevronDown: (p: SVGProps<SVGSVGElement>) => <svg {...s(p)}><path d="m6 9 6 6 6-6" /></svg>,
+  Left: (p: SVGProps<SVGSVGElement>) => <svg {...s(p)}><path d="m15 6-6 6 6 6" /></svg>,
+  Right: (p: SVGProps<SVGSVGElement>) => <svg {...s(p)}><path d="m9 6 6 6-6 6" /></svg>,
+  Copy: (p: SVGProps<SVGSVGElement>) => <svg {...s(p)}><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h8" /></svg>,
+  Share: (p: SVGProps<SVGSVGElement>) => <svg {...s(p)}><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7" /><path d="M16 6l-4-4-4 4M12 2v13" /></svg>,
+  Edit: (p: SVGProps<SVGSVGElement>) => <svg {...s(p)}><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>,
+  Present: (p: SVGProps<SVGSVGElement>) => <svg {...s(p)}><rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 20h8M12 16v4" /></svg>,
+  Grid: (p: SVGProps<SVGSVGElement>) => <svg {...s(p)}><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>,
+  Full: (p: SVGProps<SVGSVGElement>) => <svg {...s(p)}><path d="M8 3H4a1 1 0 0 0-1 1v4M16 3h4a1 1 0 0 1 1 1v4M8 21H4a1 1 0 0 1-1-1v-4M16 21h4a1 1 0 0 0 1-1v-4" /></svg>,
+  Undo: (p: SVGProps<SVGSVGElement>) => <svg {...s(p)}><path d="M9 7 4 12l5 5" /><path d="M4 12h11a5 5 0 0 1 0 10h-1" /></svg>,
+  Redo: (p: SVGProps<SVGSVGElement>) => <svg {...s(p)}><path d="m15 7 5 5-5 5" /><path d="M20 12H9a5 5 0 0 0 0 10h1" /></svg>,
+  Notes: (p: SVGProps<SVGSVGElement>) => <svg {...s(p)}><path d="M5 3h14a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" /><path d="M8 8h8M8 12h8M8 16h5" /></svg>,
+  Duplicate: (p: SVGProps<SVGSVGElement>) => <svg {...s(p)}><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M4 16V6a2 2 0 0 1 2-2h10" /></svg>,
+  Layers: (p: SVGProps<SVGSVGElement>) => <svg {...s(p)}><path d="m12 3 9 5-9 5-9-5 9-5zM3 13l9 5 9-5" /></svg>,
+  Download: (p: SVGProps<SVGSVGElement>) => <svg {...s(p)}><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 21h16" /></svg>,
+  Close: (p: SVGProps<SVGSVGElement>) => <svg {...s(p)}><path d="M6 6l12 12M18 6 6 18" /></svg>,
+  Lock: (p: SVGProps<SVGSVGElement>) => <svg {...s(p)}><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>,
+};

@@ -1,0 +1,11 @@
+node_modules/
+.next/
+data/
+pitch-export/
+tools/pitch-export/node_modules/
+tools/pitch-export/.cache/
+*.log
+.DS_Store
+.env
+.env.local
+.gstack/
