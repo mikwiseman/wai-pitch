@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { sanitizeHtml } from '@/lib/sanitize-html';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Coordinate system: every slide is a fixed 1920×1080 Stage. Blocks are
@@ -27,7 +28,8 @@ const blockBase = {
 export const TextBlock = z.object({
   ...blockBase,
   type: z.literal('text'),
-  html: z.string().default('<p></p>'),
+  // Sanitized on every parse (write + read), so stored & rendered HTML is safe.
+  html: z.string().default('<p></p>').transform(sanitizeHtml),
   fontFamily: z.string().default('var(--font-sans)'),
   fontSize: z.number().default(48),
   color: zColor.default('#1a1a18'),

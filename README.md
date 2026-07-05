@@ -31,6 +31,16 @@ dnd-kit · `@anthropic-ai/sdk`.
 Data lives in `data/wai-pitch.db` (auto-created); uploaded images in
 `data/uploads/`. No external services required to run.
 
+## Scope & security
+
+This is a **single-user, single-workspace** tool with **no authentication** — it
+is meant to run locally or behind your own access control. Rich-text HTML is
+sanitized on write and uploads are validated by magic bytes (raster images only,
+no SVG), so the public share view is safe to hand out, but the CRUD API is
+unauthenticated. **Do not expose the app itself to the open internet without
+adding an auth layer** (e.g. a reverse-proxy password or a Next.js middleware
+guard); anyone who can reach the API could edit or delete presentations.
+
 ## Run
 
 ```bash

@@ -9,3 +9,7 @@ tools/pitch-export/.cache/
 .env
 .env.local
 .gstack/
+
+# build artifacts
+*.tsbuildinfo
+next-env.d.ts

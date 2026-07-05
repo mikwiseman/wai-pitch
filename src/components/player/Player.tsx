@@ -47,39 +47,42 @@ export function Player({ deck, title }: { deck: Deck; title?: string }) {
     if (!document.fullscreenElement) el.requestFullscreen?.(); else document.exitFullscreen?.();
   }
 
-  const slide = deck.slides[i];
   return (
-    <div ref={wrapRef} onMouseMove={bump} onClick={(e) => { const x = e.clientX / window.innerWidth; go(x < 0.35 ? i - 1 : i + 1); }}
+    <div ref={wrapRef} className="player-root" onMouseMove={bump} onClick={(e) => { const x = e.clientX / window.innerWidth; go(x < 0.35 ? i - 1 : i + 1); }}
       style={{ position: 'fixed', inset: 0, background: '#0b0b0a', display: 'grid', placeItems: 'center', cursor: chrome ? 'default' : 'none' }}>
-      <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
-        {deck.slides.map((s, idx) => (
-          <div key={s.id} style={{ position: 'absolute', inset: 0, opacity: idx === i ? 1 : 0, transition: 'opacity 260ms ease', pointerEvents: idx === i ? 'auto' : 'none', background: slideBackground(s.background) }}>
-            {idx === i && <Stage><SlideView slide={s} /></Stage>}
-          </div>
-        ))}
+      {/* Live, on-screen presentation (hidden when printing) */}
+      <div className="player-live" style={{ position: 'absolute', inset: 0 }}>
+        <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
+          {deck.slides.map((s, idx) => (
+            <div key={s.id} style={{ position: 'absolute', inset: 0, opacity: idx === i ? 1 : 0, transition: 'opacity 260ms ease', pointerEvents: idx === i ? 'auto' : 'none', background: slideBackground(s.background) }}>
+              {idx === i && <Stage><SlideView slide={s} /></Stage>}
+            </div>
+          ))}
+        </div>
+
+        {/* Chrome */}
+        <div onClick={(e) => e.stopPropagation()} style={{ position: 'fixed', left: 0, right: 0, bottom: 0, height: 54, display: 'flex', alignItems: 'center', gap: 12, padding: '0 16px', background: 'linear-gradient(0deg, rgba(0,0,0,0.55), transparent)', opacity: chrome ? 1 : 0, transition: 'opacity 0.2s', color: '#fff' }}>
+          <button className="pl-btn" onClick={() => go(i - 1)} aria-label="Previous"><Icon.Left width={20} /></button>
+          <span style={{ fontSize: 13, fontVariantNumeric: 'tabular-nums', minWidth: 70 }}>{i + 1} / {n}</span>
+          <button className="pl-btn" onClick={() => go(i + 1)} aria-label="Next"><Icon.Right width={20} /></button>
+          {title && <span style={{ fontSize: 13, opacity: 0.7, marginLeft: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</span>}
+          <div style={{ flex: 1 }} />
+          <button className="pl-btn" onClick={() => window.print()} aria-label="Export PDF" title="Export PDF"><Icon.Download width={18} /></button>
+          <button className="pl-btn" onClick={toggleFull} aria-label="Fullscreen"><Icon.Full width={18} /></button>
+        </div>
+
+        {/* Progress bar */}
+        <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, height: 3, background: 'rgba(255,255,255,0.12)' }}>
+          <div style={{ height: '100%', width: `${((i + 1) / n) * 100}%`, background: 'var(--color-clay)', transition: 'width 0.2s' }} />
+        </div>
       </div>
 
-      {/* Chrome */}
-      <div onClick={(e) => e.stopPropagation()} style={{ position: 'fixed', left: 0, right: 0, bottom: 0, height: 54, display: 'flex', alignItems: 'center', gap: 12, padding: '0 16px', background: 'linear-gradient(0deg, rgba(0,0,0,0.55), transparent)', opacity: chrome ? 1 : 0, transition: 'opacity 0.2s', color: '#fff' }}>
-        <button className="pl-btn" onClick={() => go(i - 1)} aria-label="Previous"><Icon.Left width={20} /></button>
-        <span style={{ fontSize: 13, fontVariantNumeric: 'tabular-nums', minWidth: 70 }}>{i + 1} / {n}</span>
-        <button className="pl-btn" onClick={() => go(i + 1)} aria-label="Next"><Icon.Right width={20} /></button>
-        {title && <span style={{ fontSize: 13, opacity: 0.7, marginLeft: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</span>}
-        <div style={{ flex: 1 }} />
-        <button className="pl-btn" onClick={() => window.print()} aria-label="Export PDF" title="Export PDF"><Icon.Download width={18} /></button>
-        <button className="pl-btn" onClick={toggleFull} aria-label="Fullscreen"><Icon.Full width={18} /></button>
-      </div>
-
-      {/* Progress bar */}
-      <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, height: 3, background: 'rgba(255,255,255,0.12)' }}>
-        <div style={{ height: '100%', width: `${((i + 1) / n) * 100}%`, background: 'var(--color-clay)', transition: 'width 0.2s' }} />
-      </div>
-
-      {/* Print sheet: every slide stacked for PDF export via browser print */}
+      {/* Print sheet: every slide at native 1920×1080 (no scaling Stage, so it
+          renders correctly even though it is display:none until print). */}
       <div className="print-sheet" aria-hidden>
         {deck.slides.map((s) => (
           <div key={s.id} className="print-slide" style={{ background: slideBackground(s.background) }}>
-            <Stage><SlideView slide={s} /></Stage>
+            <SlideView slide={s} />
           </div>
         ))}
       </div>
@@ -90,8 +93,10 @@ export function Player({ deck, title }: { deck: Deck; title?: string }) {
         .print-sheet { display:none; }
         @media print {
           @page { size: 1920px 1080px; margin: 0; }
-          body { background:#fff; }
-          .print-sheet { display:block; }
+          html, body { background:#fff !important; }
+          .player-root { position:static !important; background:#fff !important; display:block !important; }
+          .player-live { display:none !important; }
+          .print-sheet { display:block !important; }
           .print-slide { width:1920px; height:1080px; page-break-after: always; position:relative; overflow:hidden; }
         }
       `}</style>

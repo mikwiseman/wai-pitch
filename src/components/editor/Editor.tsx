@@ -23,6 +23,7 @@ export function Editor({ id, initialTitle, initialDeck }: { id: string; initialT
   const [notesOpen, setNotesOpen] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const booted = useRef(false);
+  const readyToSave = useRef(false);
 
   // Load once into the store.
   useEffect(() => {
@@ -30,18 +31,31 @@ export function Editor({ id, initialTitle, initialDeck }: { id: string; initialT
     booted.current = true;
     load(id, initialTitle, Deck.parse(initialDeck));
     useEditor.temporal.getState().clear();
+    // Arm autosave only after the loaded deck has settled, so opening a deck
+    // never triggers a spurious write.
+    const t = setTimeout(() => { readyToSave.current = true; }, 50);
+    return () => clearTimeout(t);
   }, [id, initialTitle, initialDeck, load]);
 
-  // Debounced autosave when deck or title change.
-  const firstSave = useRef(true);
+  // After undo/redo (or delete) shrinks the deck, keep `current` in range so the
+  // canvas/inspector never point past the end.
   useEffect(() => {
-    if (firstSave.current) { firstSave.current = false; return; }
+    const st = useEditor.getState();
+    if (st.current > deck.slides.length - 1) st.goto(deck.slides.length - 1);
+  }, [deck.slides.length]);
+
+  // Debounced autosave when deck or title change. A monotonic id guards against
+  // out-of-order responses overwriting the status of a newer save.
+  const saveSeq = useRef(0);
+  useEffect(() => {
+    if (!readyToSave.current) return;
     setSaving('saving');
+    const seq = ++saveSeq.current;
     const t = setTimeout(async () => {
       try {
         const res = await fetch(`/api/presentations/${id}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ deck, title }) });
-        setSaving(res.ok ? 'saved' : 'error');
-      } catch { setSaving('error'); }
+        if (seq === saveSeq.current) setSaving(res.ok ? 'saved' : 'error');
+      } catch { if (seq === saveSeq.current) setSaving('error'); }
     }, 700);
     return () => clearTimeout(t);
   }, [deck, title, id, setSaving]);

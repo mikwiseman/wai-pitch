@@ -1,5 +1,5 @@
 'use client';
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useEditor } from '@/lib/editor-store';
 import { Icon } from '@/components/icons';
 import type { Block } from '@/types/deck';
@@ -25,8 +25,32 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
     </label>
   );
 }
-function Num({ value, onChange, step = 1 }: { value: number; onChange: (n: number) => void; step?: number }) {
-  return <input className="input" type="number" step={step} value={Math.round(value * 100) / 100} onChange={(e) => onChange(Number(e.target.value))} style={{ height: 32 }} />;
+function Num({ value, onChange, step = 1, min }: { value: number; onChange: (n: number) => void; step?: number; min?: number }) {
+  // Local buffer so the field can be cleared and retyped; only valid numbers
+  // commit, and empty/NaN never collapses the block to 0.
+  const rounded = Math.round(value * 100) / 100;
+  const [buf, setBuf] = useState(String(rounded));
+  useEffect(() => { setBuf(String(rounded)); }, [rounded]);
+  return (
+    <input className="input" type="number" step={step} value={buf} style={{ height: 32 }}
+      onChange={(e) => {
+        setBuf(e.target.value);
+        if (e.target.value === '') return;
+        const n = Number(e.target.value);
+        if (!Number.isNaN(n)) onChange(min != null ? Math.max(min, n) : n);
+      }}
+      onBlur={() => setBuf(String(rounded))} />
+  );
+}
+// Compact labelled number, used in the 2-column Position grid so the field
+// keeps enough width to actually show its digits.
+function MiniNum({ label, value, onChange, step, min }: { label: string; value: number; onChange: (n: number) => void; step?: number; min?: number }) {
+  return (
+    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--color-ink-3)' }}>
+      <span style={{ width: 20, flex: 'none' }}>{label}</span>
+      <Num value={value} onChange={onChange} step={step} min={min} />
+    </label>
+  );
 }
 function Color({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const norm = value === 'transparent' ? '#ffffff' : value;
@@ -145,11 +169,11 @@ function BlockInspector({ block }: { block: Block }) {
       {block.type === 'table' && (
         <>
           <SectionTitle>Table</SectionTitle>
-          <Row label="Rows"><Num value={block.rows} onChange={(n) => u({ rows: Math.max(1, n) })} /></Row>
-          <Row label="Cols"><Num value={block.cols} onChange={(n) => u({ cols: Math.max(1, n) })} /></Row>
-          <Row label="Font"><Num value={block.fontSize} onChange={(n) => u({ fontSize: n })} /></Row>
+          <Row label="Rows"><Num value={block.rows} min={1} onChange={(n) => u({ rows: Math.max(1, Math.round(n)) })} /></Row>
+          <Row label="Cols"><Num value={block.cols} min={1} onChange={(n) => u({ cols: Math.max(1, Math.round(n)) })} /></Row>
+          <Row label="Font"><Num value={block.fontSize} min={8} onChange={(n) => u({ fontSize: n })} /></Row>
           <Row label="Header bg"><Color value={block.headerBg} onChange={(v) => u({ headerBg: v })} /></Row>
-          <div style={{ fontSize: 12, color: 'var(--color-ink-3)', marginTop: 6 }}>Double-click cells on canvas to edit.</div>
+          <TableCells block={block} />
         </>
       )}
 
@@ -181,13 +205,36 @@ function BlockInspector({ block }: { block: Block }) {
       </div>
       <SectionTitle>Position</SectionTitle>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-        <Row label="X"><Num value={block.x} onChange={(n) => u({ x: n })} /></Row>
-        <Row label="Y"><Num value={block.y} onChange={(n) => u({ y: n })} /></Row>
-        <Row label="W"><Num value={block.w} onChange={(n) => u({ w: n })} /></Row>
-        <Row label="H"><Num value={block.h} onChange={(n) => u({ h: n })} /></Row>
-        <Row label="Rotate"><Num value={block.rotation} onChange={(n) => u({ rotation: n })} /></Row>
-        <Row label="Opacity"><Num step={0.05} value={block.opacity} onChange={(n) => u({ opacity: Math.max(0, Math.min(1, n)) })} /></Row>
+        <MiniNum label="X" value={block.x} onChange={(n) => u({ x: Math.round(n) })} />
+        <MiniNum label="Y" value={block.y} onChange={(n) => u({ y: Math.round(n) })} />
+        <MiniNum label="W" value={block.w} min={8} onChange={(n) => u({ w: Math.round(n) })} />
+        <MiniNum label="H" value={block.h} min={8} onChange={(n) => u({ h: Math.round(n) })} />
+        <MiniNum label="Rotate" value={block.rotation} onChange={(n) => u({ rotation: Math.round(n) })} />
+        <MiniNum label="Opacity" step={0.05} value={block.opacity} onChange={(n) => u({ opacity: Math.max(0, Math.min(1, n)) })} />
       </div>
     </div>
+  );
+}
+
+function TableCells({ block }: { block: Extract<Block, { type: 'table' }> }) {
+  const setCell = useEditor((s) => s.setCell);
+  return (
+    <>
+      <SectionTitle>Cells</SectionTitle>
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${block.cols}, 1fr)`, gap: 4 }}>
+        {Array.from({ length: block.rows }).map((_, r) =>
+          Array.from({ length: block.cols }).map((__, c) => (
+            <input
+              key={`${r}-${c}`}
+              className="input"
+              value={block.cells[r]?.[c] ?? ''}
+              placeholder={block.headerRow && r === 0 ? 'Header' : ''}
+              onChange={(e) => setCell(block.id, r, c, e.target.value)}
+              style={{ height: 28, fontSize: 12, padding: '0 6px', fontWeight: block.headerRow && r === 0 ? 600 : 400 }}
+            />
+          )),
+        )}
+      </div>
+    </>
   );
 }

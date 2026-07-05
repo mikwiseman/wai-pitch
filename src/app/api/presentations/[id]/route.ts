@@ -15,11 +15,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
   const patch: { title?: string; content?: ReturnType<typeof Deck.parse>; folderId?: string | null } = {};
-  if (typeof body.title === 'string') patch.title = body.title;
+  if (typeof body.title === 'string') patch.title = body.title.slice(0, 200);
   if (body.folderId !== undefined) patch.folderId = body.folderId;
   if (body.deck !== undefined) {
     const parsed = Deck.safeParse(body.deck);
-    if (!parsed.success) return NextResponse.json({ error: 'invalid deck', issues: parsed.error.issues }, { status: 400 });
+    if (!parsed.success) return NextResponse.json({ error: 'invalid deck' }, { status: 400 });
     patch.content = parsed.data;
   }
   const row = updatePresentation(id, patch);

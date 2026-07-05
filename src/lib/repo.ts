@@ -15,7 +15,19 @@ export function listFolders(workspaceId = DEFAULT_WORKSPACE_ID) {
   return getDb().select().from(schema.folders).where(eq(schema.folders.workspaceId, workspaceId)).all();
 }
 
+export function getFolder(id: string) {
+  return getDb().select().from(schema.folders).where(eq(schema.folders.id, id)).get();
+}
+
+// True if `folderId` names a folder in the given workspace (or is null = root).
+function folderOk(folderId: string | null | undefined, workspaceId: string): boolean {
+  if (folderId == null) return true;
+  const f = getFolder(folderId);
+  return !!f && f.workspaceId === workspaceId;
+}
+
 export function createFolder(name: string, parentId: string | null, workspaceId = DEFAULT_WORKSPACE_ID) {
+  if (!folderOk(parentId, workspaceId)) throw new Error('parent folder not found');
   const row = { id: 'f_' + nanoid(10), workspaceId, parentId, name, position: Date.now(), createdAt: Date.now() };
   getDb().insert(schema.folders).values(row).run();
   return row;
@@ -25,11 +37,20 @@ export function renameFolder(id: string, name: string) {
   getDb().update(schema.folders).set({ name }).where(eq(schema.folders.id, id)).run();
 }
 
+// Recursively soft-delete every presentation under a folder subtree, then
+// hard-delete the folders — so nested folders and their decks are never orphaned.
 export function deleteFolder(id: string) {
   const db = getDb();
-  // soft-delete presentations in this folder, then remove the folder
-  db.update(schema.presentations).set({ deletedAt: Date.now() }).where(eq(schema.presentations.folderId, id)).run();
-  db.delete(schema.folders).where(eq(schema.folders.id, id)).run();
+  const all = db.select().from(schema.folders).all();
+  const ids = [id];
+  for (let i = 0; i < ids.length; i++) {
+    for (const f of all) if (f.parentId === ids[i]) ids.push(f.id);
+  }
+  const now = Date.now();
+  for (const fid of ids) {
+    db.update(schema.presentations).set({ deletedAt: now }).where(eq(schema.presentations.folderId, fid)).run();
+    db.delete(schema.folders).where(eq(schema.folders.id, fid)).run();
+  }
 }
 
 type PresRow = typeof schema.presentations.$inferSelect;
@@ -60,11 +81,14 @@ export function deckOf(row: PresRow): DeckT {
 
 export function createPresentation(opts: { title?: string; folderId?: string | null; deck?: DeckT; workspaceId?: string } = {}) {
   const now = Date.now();
+  const workspaceId = opts.workspaceId ?? DEFAULT_WORKSPACE_ID;
+  // Ignore a bad folderId rather than stranding the deck in a nonexistent folder.
+  const folderId = folderOk(opts.folderId, workspaceId) ? (opts.folderId ?? null) : null;
   const deck = opts.deck ?? starterDeck(opts.title ?? 'Untitled presentation');
   const row = {
     id: 'p_' + nanoid(12),
-    workspaceId: opts.workspaceId ?? DEFAULT_WORKSPACE_ID,
-    folderId: opts.folderId ?? null,
+    workspaceId,
+    folderId,
     title: opts.title ?? 'Untitled presentation',
     content: JSON.stringify(deck),
     shareToken: null as string | null,
@@ -79,9 +103,14 @@ export function createPresentation(opts: { title?: string; folderId?: string | n
 }
 
 export function updatePresentation(id: string, patch: Partial<{ title: string; content: DeckT; folderId: string | null }>) {
+  const cur = getPresentation(id);
+  if (!cur) return undefined;
   const set: Record<string, unknown> = { updatedAt: Date.now() };
   if (patch.title !== undefined) set.title = patch.title;
-  if (patch.folderId !== undefined) set.folderId = patch.folderId;
+  if (patch.folderId !== undefined) {
+    // Only accept a target folder that exists in the same workspace (or root).
+    set.folderId = folderOk(patch.folderId, cur.workspaceId) ? patch.folderId : null;
+  }
   if (patch.content !== undefined) set.content = JSON.stringify(Deck.parse(patch.content));
   getDb().update(schema.presentations).set(set).where(eq(schema.presentations.id, id)).run();
   return getPresentation(id);

@@ -35,6 +35,8 @@ type Actions = {
   addBlock: (type: BlockType, patch?: Partial<Block>) => void;
   addBlockObject: (block: Block) => void;
   updateBlock: (id: string, patch: Partial<Block>) => void;
+  updateBlockOnSlide: (slideId: string, id: string, patch: Partial<Block>) => void;
+  setCell: (id: string, r: number, c: number, value: string) => void;
   updateSelected: (patch: Partial<Block>) => void;
   deleteBlock: (id: string) => void;
   deleteSelected: () => void;
@@ -69,6 +71,18 @@ function withSlides(deck: Deck, fn: (slides: Slide[]) => Slide[]): Deck {
 function patchSlide(deck: Deck, i: number, fn: (s: Slide) => Slide): Deck {
   return withSlides(deck, (slides) => slides.map((s, idx) => (idx === i ? fn(s) : s)));
 }
+function patchSlideById(deck: Deck, slideId: string, fn: (s: Slide) => Slide): Deck {
+  return withSlides(deck, (slides) => slides.map((s) => (s.id === slideId ? fn(s) : s)));
+}
+
+// Deep-copy a block so a duplicate never aliases the original's nested arrays
+// (table cells, chart labels/series) — otherwise editing one mutates the other.
+function cloneBlock(b: Block): Block {
+  const c = { ...b, id: uid() } as Block;
+  if (c.type === 'table') c.cells = c.cells.map((row) => [...row]);
+  if (c.type === 'chart') { c.labels = [...c.labels]; c.series = [...c.series]; }
+  return c;
+}
 
 export const useEditor = create<EditorStore>()(
   temporal(
@@ -90,7 +104,7 @@ export const useEditor = create<EditorStore>()(
       }),
       duplicateSlide: (i) => set((st) => {
         const src = st.deck.slides[i]; if (!src) return {};
-        const copy: Slide = { ...src, id: sid(), blocks: src.blocks.map((b) => ({ ...b, id: uid() })) };
+        const copy: Slide = { ...src, id: sid(), blocks: src.blocks.map(cloneBlock) };
         const slides = [...st.deck.slides]; slides.splice(i + 1, 0, copy);
         return { deck: { ...st.deck, slides }, current: i + 1, selection: [] };
       }),
@@ -100,8 +114,11 @@ export const useEditor = create<EditorStore>()(
         return { deck: { ...st.deck, slides }, current: Math.max(0, Math.min(st.current, slides.length - 1)), selection: [] };
       }),
       reorderSlides: (from, to) => set((st) => {
+        // Keep the slide the user was viewing selected after the move.
+        const viewedId = st.deck.slides[st.current]?.id;
         const slides = [...st.deck.slides]; const [m] = slides.splice(from, 1); slides.splice(to, 0, m);
-        return { deck: { ...st.deck, slides }, current: to };
+        const current = Math.max(0, slides.findIndex((s) => s.id === viewedId));
+        return { deck: { ...st.deck, slides }, current, selection: [] };
       }),
       setBackground: (patch) => set((st) => ({ deck: patchSlide(st.deck, st.current, (s) => ({ ...s, background: { ...s.background, ...patch } })) })),
       setNotes: (notes) => set((st) => ({ deck: patchSlide(st.deck, st.current, (s) => ({ ...s, notes })) })),
@@ -113,12 +130,21 @@ export const useEditor = create<EditorStore>()(
       }),
       addBlockObject: (block) => set((st) => ({ deck: patchSlide(st.deck, st.current, (s) => ({ ...s, blocks: [...s.blocks, block] })), selection: [block.id] })),
       updateBlock: (id, patch) => set((st) => ({ deck: patchSlide(st.deck, st.current, (s) => ({ ...s, blocks: s.blocks.map((b) => (b.id === id ? ({ ...b, ...patch } as Block) : b)) })) })),
+      // Commit to a block by its slide id (used by inline text edit so a late
+      // blur can't land on whatever slide happens to be current now).
+      updateBlockOnSlide: (slideId, id, patch) => set((st) => ({ deck: patchSlideById(st.deck, slideId, (s) => ({ ...s, blocks: s.blocks.map((b) => (b.id === id ? ({ ...b, ...patch } as Block) : b)) })) })),
+      setCell: (id, r, c, value) => set((st) => ({ deck: patchSlide(st.deck, st.current, (s) => ({ ...s, blocks: s.blocks.map((b) => {
+        if (b.id !== id || b.type !== 'table') return b;
+        const cells = Array.from({ length: b.rows }, (_, ri) => Array.from({ length: b.cols }, (__, ci) => b.cells[ri]?.[ci] ?? ''));
+        cells[r][c] = value;
+        return { ...b, cells };
+      }) })) })),
       updateSelected: (patch) => set((st) => ({ deck: patchSlide(st.deck, st.current, (s) => ({ ...s, blocks: s.blocks.map((b) => (st.selection.includes(b.id) ? ({ ...b, ...patch } as Block) : b)) })) })),
       deleteBlock: (id) => set((st) => ({ deck: patchSlide(st.deck, st.current, (s) => ({ ...s, blocks: s.blocks.filter((b) => b.id !== id) })), selection: st.selection.filter((x) => x !== id) })),
       deleteSelected: () => set((st) => ({ deck: patchSlide(st.deck, st.current, (s) => ({ ...s, blocks: s.blocks.filter((b) => !st.selection.includes(b.id) || b.locked) })), selection: [] })),
       duplicateSelected: () => set((st) => {
         const s = st.deck.slides[st.current];
-        const dupes = s.blocks.filter((b) => st.selection.includes(b.id)).map((b) => ({ ...b, id: uid(), x: b.x + 40, y: b.y + 40, z: maxZ(s) + 1 } as Block));
+        const dupes = s.blocks.filter((b) => st.selection.includes(b.id)).map((b) => ({ ...cloneBlock(b), x: b.x + 40, y: b.y + 40, z: maxZ(s) + 1 } as Block));
         if (!dupes.length) return {};
         return { deck: patchSlide(st.deck, st.current, (sl) => ({ ...sl, blocks: [...sl.blocks, ...dupes] })), selection: dupes.map((d) => d.id) };
       }),

@@ -46,10 +46,12 @@ export function BlockView({ block }: { block: Block }) {
       return <ShapeView block={block} />;
     case 'table':
       return <TableView block={block} />;
-    case 'embed':
-      return block.url
-        ? <iframe src={block.url} style={{ width: '100%', height: '100%', border: 0, borderRadius: block.radius }} allow="fullscreen" referrerPolicy="no-referrer" />
-        : <div style={{ width: '100%', height: '100%', borderRadius: block.radius, background: '#e9e4d8', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8b877c', fontSize: 28 }}>Embed URL</div>;
+    case 'embed': {
+      const safe = /^https:\/\//i.test(block.url.trim());
+      return safe
+        ? <iframe src={block.url} style={{ width: '100%', height: '100%', border: 0, borderRadius: block.radius }} allow="fullscreen" referrerPolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-popups allow-forms" />
+        : <div style={{ width: '100%', height: '100%', borderRadius: block.radius, background: '#e9e4d8', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8b877c', fontSize: 28 }}>{block.url ? 'Embeds must be https://' : 'Embed URL'}</div>;
+    }
     case 'chart':
       return <ChartView block={block} />;
   }

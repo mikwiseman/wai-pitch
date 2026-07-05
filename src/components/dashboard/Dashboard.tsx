@@ -147,17 +147,29 @@ function NavItem({ active, onClick, icon, label }: { active: boolean; onClick: (
 
 function FolderNode({ folder, childrenOf, view, setView, onChange, depth }: { folder: Folder; childrenOf: (id: string) => Folder[]; view: View; setView: (v: View) => void; onChange: () => void; depth: number }) {
   const [open, setOpen] = useState(depth === 0);
+  const [hover, setHover] = useState(false);
   const kids = childrenOf(folder.id);
   const active = view.kind === 'folder' && view.id === folder.id;
+  async function rename() { const n = prompt('Rename folder', folder.name)?.trim(); if (n) { await api.renameFolder(folder.id, n); onChange(); } }
+  async function del() {
+    if (!confirm(`Delete folder "${folder.name}"? Presentations inside move to Recently deleted.`)) return;
+    await api.deleteFolder(folder.id);
+    if (view.kind === 'folder' && view.id === folder.id) setView({ kind: 'all' });
+    onChange();
+  }
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 2, paddingLeft: depth * 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 2, paddingLeft: depth * 14 }} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
         <button onClick={() => setOpen((o) => !o)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-ink-3)', padding: 4, visibility: kids.length ? 'visible' : 'hidden' }}>
           {open ? <Icon.ChevronDown width={14} /> : <Icon.Chevron width={14} />}
         </button>
-        <button onClick={() => setView({ kind: 'folder', id: folder.id })} onDoubleClick={async () => { const n = prompt('Rename folder', folder.name)?.trim(); if (n) { await api.renameFolder(folder.id, n); onChange(); } }}
-          style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, textAlign: 'left', padding: '7px 8px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 14, background: active ? 'var(--color-paper-3)' : 'transparent', color: active ? 'var(--color-ink)' : 'var(--color-ink-2)', fontWeight: active ? 600 : 500 }}>
-          <Icon.Folder width={16} style={{ color: 'var(--color-ink-3)' }} /> <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{folder.name}</span>
+        <button onClick={() => setView({ kind: 'folder', id: folder.id })} onDoubleClick={rename}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, textAlign: 'left', padding: '7px 8px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 14, background: active ? 'var(--color-paper-3)' : 'transparent', color: active ? 'var(--color-ink)' : 'var(--color-ink-2)', fontWeight: active ? 600 : 500 }}>
+          <Icon.Folder width={16} style={{ color: 'var(--color-ink-3)', flex: 'none' }} /> <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{folder.name}</span>
+        </button>
+        <button onClick={del} title="Delete folder" aria-label={`Delete folder ${folder.name}`}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-ink-3)', padding: 4, visibility: hover ? 'visible' : 'hidden', flex: 'none' }}>
+          <Icon.Trash width={14} />
         </button>
       </div>
       {open && kids.map((k) => <FolderNode key={k.id} folder={k} childrenOf={childrenOf} view={view} setView={setView} onChange={onChange} depth={depth + 1} />)}
@@ -189,11 +201,22 @@ function Card({ p, trash, folders, onChange }: { p: PresListItem; trash: boolean
   }, [menu]);
 
   const open = () => !trash && router.push(`/edit/${p.id}`);
-  async function act(a: 'duplicate' | 'restore' | 'destroy' | 'share') {
+  async function act(a: 'duplicate' | 'restore' | 'destroy') {
     if (a === 'destroy' && !confirm('Delete forever?')) return;
     const r = await api.presAction(p.id, a);
     if (a === 'duplicate' && r.id) router.push(`/edit/${r.id}`);
     else onChange();
+    setMenu(false);
+  }
+  async function toggleShare() {
+    const on = !p.published; // enabling if not currently shared
+    const r = await api.presAction(p.id, 'share', on);
+    if (on && r.token) {
+      const url = `${location.origin}/v/${r.token}`;
+      await navigator.clipboard?.writeText(url).catch(() => {});
+      alert(`Public link copied to clipboard:\n${url}`);
+    }
+    onChange();
     setMenu(false);
   }
   async function rename() {
@@ -237,7 +260,7 @@ function Card({ p, trash, folders, onChange }: { p: PresListItem; trash: boolean
                   <MenuItem onClick={() => { setMenu(false); open(); }} icon={<Icon.Edit width={16} />} label="Edit" />
                   <MenuItem onClick={() => { setMenu(false); setRenaming(true); }} icon={<Icon.Type width={16} />} label="Rename" />
                   <MenuItem onClick={() => act('duplicate')} icon={<Icon.Duplicate width={16} />} label="Duplicate" />
-                  <MenuItem onClick={() => act('share')} icon={<Icon.Share width={16} />} label={p.published ? 'Unshare' : 'Share link'} />
+                  <MenuItem onClick={toggleShare} icon={<Icon.Share width={16} />} label={p.published ? 'Unshare' : 'Share link'} />
                   <div style={{ height: 1, background: 'var(--color-line)', margin: '6px 4px' }} />
                   <div style={{ fontSize: 11, color: 'var(--color-ink-3)', padding: '4px 8px' }}>Move to</div>
                   <MenuItem onClick={() => move(null)} icon={<Icon.Home width={16} />} label="Root" />

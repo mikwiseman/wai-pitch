@@ -3,7 +3,7 @@ import type { Slide } from '@/types/deck';
 
 export type PresListItem = {
   id: string; title: string; folderId: string | null; workspaceId: string;
-  shareToken: string | null; published: number;
+  published: number;
   createdAt: number; updatedAt: number; deletedAt: number | null;
   slideCount: number; thumb: Slide | null;
 };

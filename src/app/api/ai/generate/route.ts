@@ -18,8 +18,10 @@ Rules:
 - accent should be a tasteful single color; default #cc785c.`;
 
 export async function POST(req: Request) {
-  const { prompt, slideCount } = await req.json().catch(() => ({}));
-  if (!prompt || typeof prompt !== 'string') return NextResponse.json({ error: 'prompt required' }, { status: 400 });
+  const body = await req.json().catch(() => ({}));
+  const prompt = typeof body.prompt === 'string' ? body.prompt.trim().slice(0, 2000) : '';
+  if (!prompt) return NextResponse.json({ error: 'prompt required' }, { status: 400 });
+  const slideCount = Number.isFinite(body.slideCount) ? Math.max(3, Math.min(30, Math.round(body.slideCount))) : undefined;
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return NextResponse.json({ error: 'ANTHROPIC_API_KEY is not set on the server' }, { status: 501 });
 
@@ -36,7 +38,8 @@ export async function POST(req: Request) {
     });
     text = msg.content.filter((b) => b.type === 'text').map((b) => (b as { text: string }).text).join('');
   } catch (e) {
-    return NextResponse.json({ error: 'AI request failed', detail: String(e).slice(0, 300) }, { status: 502 });
+    console.error('[ai/generate] request failed:', e);
+    return NextResponse.json({ error: 'AI request failed' }, { status: 502 });
   }
 
   // Extract the JSON object (model may wrap it).
@@ -45,7 +48,8 @@ export async function POST(req: Request) {
   try {
     outline = Outline.parse(JSON.parse(jsonStr));
   } catch (e) {
-    return NextResponse.json({ error: 'Model returned invalid outline', detail: String(e).slice(0, 300), raw: text.slice(0, 600) }, { status: 502 });
+    console.error('[ai/generate] invalid outline:', e, '\nraw:', text.slice(0, 600));
+    return NextResponse.json({ error: 'Model returned an invalid outline, please try again' }, { status: 502 });
   }
 
   const deck = composeDeck(outline);
