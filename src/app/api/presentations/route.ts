@@ -2,14 +2,17 @@ import { NextResponse } from 'next/server';
 import { createPresentation, listPresentations, deckOf, FolderNotFoundError } from '@/lib/repo';
 import { Deck } from '@/types/deck';
 import { isProjectKind } from '@/lib/starter';
+import { getApiWorkspace } from '@/lib/api-auth';
 
 export const runtime = 'nodejs';
 
 export async function GET(req: Request) {
+  const access = await getApiWorkspace();
+  if ('response' in access) return access.response;
   const url = new URL(req.url);
   const trashed = url.searchParams.get('trashed') === '1';
   const folderId = url.searchParams.has('folderId') ? (url.searchParams.get('folderId') || null) : undefined;
-  const rows = listPresentations({ trashed, folderId });
+  const rows = listPresentations({ workspaceId: access.workspace.id, trashed, folderId });
   // Attach first-slide thumbnail + slide count so cards render live previews
   // without shipping the full deck (or the share token) to the client.
   return NextResponse.json(rows.map((r) => {
@@ -24,6 +27,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const access = await getApiWorkspace();
+  if ('response' in access) return access.response;
   const raw = await req.json().catch(() => ({}));
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     return NextResponse.json({ error: 'invalid request body' }, { status: 400 });
@@ -43,7 +48,7 @@ export async function POST(req: Request) {
   const title = typeof body.title === 'string' ? body.title.slice(0, 200) : undefined;
   const folderId = typeof body.folderId === 'string' || body.folderId === null ? body.folderId : null;
   try {
-    const row = createPresentation({ title, folderId, deck, kind: body.kind });
+    const row = createPresentation({ title, folderId, deck, kind: body.kind, workspaceId: access.workspace.id });
     return NextResponse.json({ id: row.id });
   } catch (cause) {
     if (cause instanceof FolderNotFoundError) {

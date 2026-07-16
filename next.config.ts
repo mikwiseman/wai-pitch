@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
     '/api/uploads/[name]': ['./data/uploads/**/*'],
   },
   // better-sqlite3 is a native module — keep it external to the server bundle.
-  serverExternalPackages: ['better-sqlite3'],
+  serverExternalPackages: ['better-sqlite3', 'pptx-svg'],
   typescript: { ignoreBuildErrors: false },
 };
 

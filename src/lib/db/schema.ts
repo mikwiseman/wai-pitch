@@ -2,6 +2,7 @@ import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 
 export const workspaces = sqliteTable('workspaces', {
   id: text('id').primaryKey(),
+  ownerId: text('owner_id'),
   name: text('name').notNull(),
   color: text('color').notNull().default('#cc785c'),
   createdAt: integer('created_at').notNull(),

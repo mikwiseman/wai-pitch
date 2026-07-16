@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { Outline, composeDeck } from '@/lib/ai/compose';
 import { createPresentation } from '@/lib/repo';
+import { getApiWorkspace } from '@/lib/api-auth';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -18,6 +19,8 @@ Rules:
 - accent should be a tasteful single color; default #cc785c.`;
 
 export async function POST(req: Request) {
+  const access = await getApiWorkspace();
+  if ('response' in access) return access.response;
   const body = await req.json().catch(() => ({}));
   const prompt = typeof body.prompt === 'string' ? body.prompt.trim().slice(0, 2000) : '';
   if (!prompt) return NextResponse.json({ error: 'prompt required' }, { status: 400 });
@@ -53,7 +56,7 @@ export async function POST(req: Request) {
   }
 
   const deck = composeDeck(outline);
-  const row = createPresentation({ title: outline.title, deck });
+  const row = createPresentation({ title: outline.title, deck, workspaceId: access.workspace.id });
   return NextResponse.json({ id: row.id, title: outline.title, slides: deck.slides.length });
 }
 

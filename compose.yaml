@@ -11,6 +11,11 @@ services:
       NODE_ENV: production
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET is required}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-https://design.waiwai.is}
+      RESEND_API_KEY: ${RESEND_API_KEY:?RESEND_API_KEY is required}
+      AUTH_EMAIL_FROM: ${AUTH_EMAIL_FROM:-WAI Design <design@mail.waiwai.is>}
+      LEGACY_OWNER_EMAIL: ${LEGACY_OWNER_EMAIL:?LEGACY_OWNER_EMAIL is required}
     volumes:
       - ./data:/app/data
     healthcheck:
@@ -32,7 +37,6 @@ services:
       - "443:443/udp"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - ./Caddyfile.users:/etc/caddy/users:ro
       - caddy_data:/data
       - caddy_config:/config
     healthcheck:

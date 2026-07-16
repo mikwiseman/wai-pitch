@@ -2,10 +2,12 @@ import { NextResponse } from 'next/server';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { nanoid } from 'nanoid';
+import { getApiWorkspace } from '@/lib/api-auth';
+import { DATA_DIR } from '@/lib/db/path';
 
 export const runtime = 'nodejs';
 
-const UP_DIR = join(process.cwd(), 'data', 'uploads');
+const UP_DIR = join(DATA_DIR, 'uploads');
 const MAX_BYTES = 15 * 1024 * 1024; // 15 MB
 
 // Detect a real raster image from its magic bytes. SVG is intentionally NOT
@@ -23,6 +25,8 @@ function sniffExt(buf: Buffer): string | null {
 
 // Store uploaded images on disk; served back via /api/uploads/[name].
 export async function POST(req: Request) {
+  const access = await getApiWorkspace();
+  if ('response' in access) return access.response;
   const form = await req.formData();
   const file = form.get('file');
   if (!(file instanceof File)) return NextResponse.json({ error: 'no file' }, { status: 400 });

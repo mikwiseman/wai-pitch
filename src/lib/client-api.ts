@@ -9,6 +9,17 @@ export type PresListItem = {
   slideCount: number; thumb: Slide | null;
 };
 export type Folder = { id: string; workspaceId: string; parentId: string | null; name: string; position: number; createdAt: number };
+export type PptxImportResult = {
+  id: string;
+  title: string;
+  report: {
+    slides: number;
+    hiddenSlidesSkipped: number;
+    editable: { text: number; shapes: number; images: number };
+    flattened: number;
+    unsupported: string[];
+  };
+};
 
 async function jf<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, { ...init, headers: { 'content-type': 'application/json', ...(init?.headers || {}) } });
@@ -33,4 +44,14 @@ export const api = {
   renameFolder: (id: string, name: string) => jf(`/api/folders/${id}`, { method: 'PUT', body: JSON.stringify({ name }) }),
   deleteFolder: (id: string) => jf(`/api/folders/${id}`, { method: 'DELETE' }),
   aiGenerate: (prompt: string, slideCount?: number) => jf<{ id: string; title: string; slides: number }>(`/api/ai/generate`, { method: 'POST', body: JSON.stringify({ prompt, slideCount }) }),
+  importPptx: async (file: File) => {
+    const form = new FormData();
+    form.set('file', file);
+    const response = await fetch('/api/import/pptx', { method: 'POST', body: form });
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({ error: `Import failed (${response.status})` }));
+      throw new Error(body.error || `Import failed (${response.status})`);
+    }
+    return response.json() as Promise<PptxImportResult>;
+  },
 };

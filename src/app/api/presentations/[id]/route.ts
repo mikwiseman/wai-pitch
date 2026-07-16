@@ -1,17 +1,22 @@
 import { NextResponse } from 'next/server';
 import { getPresentation, updatePresentation, trashPresentation, deckOf, FolderNotFoundError } from '@/lib/repo';
 import { Deck } from '@/types/deck';
+import { getApiWorkspace } from '@/lib/api-auth';
 
 export const runtime = 'nodejs';
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const access = await getApiWorkspace();
+  if ('response' in access) return access.response;
   const { id } = await params;
-  const row = getPresentation(id);
+  const row = getPresentation(id, access.workspace.id);
   if (!row) return NextResponse.json({ error: 'not found' }, { status: 404 });
   return NextResponse.json({ ...row, content: undefined, deck: deckOf(row) });
 }
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const access = await getApiWorkspace();
+  if ('response' in access) return access.response;
   const { id } = await params;
   const raw = await req.json().catch(() => ({}));
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
@@ -33,7 +38,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   }
   let row;
   try {
-    row = updatePresentation(id, patch);
+    row = updatePresentation(id, access.workspace.id, patch);
   } catch (cause) {
     if (cause instanceof FolderNotFoundError) {
       return NextResponse.json({ error: cause.message }, { status: 400 });
@@ -45,7 +50,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const access = await getApiWorkspace();
+  if ('response' in access) return access.response;
   const { id } = await params;
-  trashPresentation(id);
+  if (!trashPresentation(id, access.workspace.id)) return NextResponse.json({ error: 'not found' }, { status: 404 });
   return NextResponse.json({ ok: true });
 }

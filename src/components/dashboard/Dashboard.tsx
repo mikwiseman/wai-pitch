@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { api, type Folder, type PresListItem } from '@/lib/client-api';
+import { api, type Folder, type PresListItem, type PptxImportResult } from '@/lib/client-api';
 import type { ProjectKind } from '@/lib/starter';
 import { Thumb } from '@/components/Thumb';
 import { Icon } from '@/components/icons';
+import { authClient } from '@/lib/auth-client';
 
 type View = { kind: 'all' } | { kind: 'trash' } | { kind: 'folder'; id: string };
 type Sort = 'updated' | 'created' | 'title';
@@ -23,7 +24,7 @@ const CREATION_MODES: Array<{
   { kind: 'prototype', label: 'Prototype', description: 'Map a realistic, reviewable product flow.', eyebrow: 'FLOW', icon: <Icon.Layers width={20} /> },
 ];
 
-export function Dashboard() {
+export function Dashboard({ user }: { user: { name: string; email: string; image?: string | null } }) {
   const router = useRouter();
   const [folders, setFolders] = useState<Folder[]>([]);
   const [items, setItems] = useState<PresListItem[]>([]);
@@ -36,6 +37,8 @@ export function Dashboard() {
   const [aiDraft, setAiDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [importOpen, setImportOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
 
   const reloadFolders = useCallback(async () => {
     try {
@@ -167,7 +170,14 @@ export function Dashboard() {
                 <option value="created">Date created</option>
                 <option value="title">Title</option>
               </select>
+              <button className="btn" onClick={() => setImportOpen(true)}><Icon.Upload width={16} /> Import</button>
               <button className="btn btn-primary" onClick={() => openAi()}><Icon.Sparkle width={17} /> Create with AI</button>
+              <div className="account-menu-wrap">
+                <button className="account-button" onClick={() => setAccountOpen((value) => !value)} aria-label="Account menu" aria-expanded={accountOpen}>
+                  {user.image ? <img src={user.image} alt="" /> : <span>{initials(user.name || user.email)}</span>}
+                </button>
+                {accountOpen && <div className="account-menu glass-panel"><strong>{user.name}</strong><small>{user.email}</small><div className="menu-separator" /><button onClick={async () => { await authClient.signOut(); location.assign('/auth'); }}><Icon.Left width={15} /> Sign out</button></div>}
+              </div>
             </div>
           </header>
 
@@ -234,6 +244,7 @@ export function Dashboard() {
       </div>
 
       {aiOpen && <AiModal initialPrompt={aiDraft} onClose={() => setAiOpen(false)} onDone={(id) => router.push(`/edit/${id}`)} />}
+      {importOpen && <ImportModal onClose={() => setImportOpen(false)} onDone={(id) => router.push(`/edit/${id}`)} />}
       {busy && <div className="busy-overlay" role="status"><span className="busy-spinner" /> Preparing your canvas…</div>}
     </div>
   );
@@ -413,6 +424,69 @@ function AiModal({ initialPrompt, onClose, onDone }: { initialPrompt: string; on
       </div>
     </div>
   );
+}
+
+function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: (id: string) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const [error, setError] = useState('');
+  const [result, setResult] = useState<PptxImportResult | null>(null);
+
+  function choose(next?: File) {
+    if (!next) return;
+    setError(''); setResult(null);
+    if (!next.name.toLowerCase().endsWith('.pptx')) { setError('Choose a PowerPoint .pptx file.'); return; }
+    if (next.size > 75 * 1024 * 1024) { setError('This file is larger than 75 MB.'); return; }
+    setFile(next);
+  }
+
+  async function runImport() {
+    if (!file) return;
+    setBusy(true); setError('');
+    try {
+      setResult(await api.importPptx(file));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Import failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const editableCount = result ? result.report.editable.text + result.report.editable.shapes + result.report.editable.images : 0;
+
+  return <div className="modal-backdrop" onClick={busy ? undefined : onClose}>
+    <div className="import-modal glass-panel" role="dialog" aria-modal="true" aria-labelledby="import-title" onClick={(event) => event.stopPropagation()}>
+      <button className="modal-close" onClick={onClose} disabled={busy} aria-label="Close"><Icon.Close width={18} /></button>
+      <div className="import-modal-mark"><Icon.Upload width={22} /></div>
+      <span className="eyebrow">EDITABLE IMPORT</span>
+      <h2 id="import-title">Bring the layers with you.</h2>
+      <p>Export a deck from Pitch as PowerPoint, then drop the <strong>.pptx</strong> here. Text, images, and basic shapes become native WAI Design objects.</p>
+
+      {!result ? <>
+        <button className={`import-dropzone${dragging ? ' is-dragging' : ''}${file ? ' has-file' : ''}`} onClick={() => inputRef.current?.click()} onDragEnter={(event) => { event.preventDefault(); setDragging(true); }} onDragOver={(event) => event.preventDefault()} onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); choose(event.dataTransfer.files[0]); }}>
+          <input ref={inputRef} type="file" accept=".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" onChange={(event) => choose(event.target.files?.[0])} />
+          <span><Icon.Upload width={21} /></span>
+          {file ? <><strong>{file.name}</strong><small>{(file.size / 1024 / 1024).toFixed(1)} MB · ready to analyze</small></> : <><strong>Drop a PowerPoint deck</strong><small>or click to browse · up to 75 MB</small></>}
+        </button>
+        <div className="import-explainer"><div><i className="compat-dot compat-dot--editable" /><span><strong>Editable</strong><small>Text, pictures, basic shapes</small></span></div><div><i className="compat-dot compat-dot--locked" /><span><strong>Visually preserved</strong><small>Charts, SmartArt, complex groups</small></span></div></div>
+        {error && <div className="modal-error" role="alert">{error}</div>}
+        <div className="import-actions"><a href="https://help.pitch.com/en/articles/6713988-export-a-presentation-to-power-point" target="_blank" rel="noreferrer">How to export from Pitch ↗</a><button className="btn btn-primary" disabled={!file || busy} onClick={() => void runImport()}>{busy ? <><span className="busy-spinner" /> Reading layers…</> : <>Import deck <span>↗</span></>}</button></div>
+      </> : <div className="import-report">
+        <div className="report-success"><Icon.Grid width={24} /><span><strong>{result.title}</strong><small>{result.report.slides} slides imported</small></span></div>
+        <div className="report-metrics"><div><strong>{editableCount}</strong><span>editable objects</span></div><div><strong>{result.report.flattened}</strong><span>locked complex visuals</span></div><div><strong>{result.report.hiddenSlidesSkipped}</strong><span>hidden slides skipped</span></div></div>
+        {result.report.unsupported.length > 0 && <p>Preserved as locked visuals: {result.report.unsupported.join(', ')}. Nothing was silently discarded.</p>}
+        <button className="btn btn-primary" onClick={() => onDone(result.id)}>Open editable deck <span>↗</span></button>
+      </div>}
+    </div>
+  </div>;
+}
+
+function initials(value: string) {
+  const parts = value.trim().split(/\s+/).filter(Boolean);
+  if (parts.length > 1) return `${parts[0][0]}${parts.at(-1)?.[0]}`.toUpperCase();
+  return (parts[0] || 'W').slice(0, 2).toUpperCase();
 }
 
 function timeAgo(timestamp: number): string {

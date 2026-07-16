@@ -1,9 +1,10 @@
 import { readFile } from 'node:fs/promises';
 import { join, basename } from 'node:path';
+import { DATA_DIR } from '@/lib/db/path';
 
 export const runtime = 'nodejs';
 
-const UP_DIR = join(process.cwd(), 'data', 'uploads');
+const UP_DIR = join(DATA_DIR, 'uploads');
 // Raster image types only. No SVG — it would execute inline scripts if served
 // same-origin (uploads are validated by magic bytes on write, so SVG never
 // lands here, but the map is kept strict as defense in depth).
