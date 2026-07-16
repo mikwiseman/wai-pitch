@@ -28,7 +28,10 @@ export function Canvas({ zoom }: { zoom: number }) {
     const measure = () => { const r = el.getBoundingClientRect(); setScale(fitScale(r.width - 80, r.height - 80) * zoom); };
     const ro = new ResizeObserver(measure); ro.observe(el); measure();
     return () => ro.disconnect();
-  }, [zoom]);
+  // The store starts without slides and is hydrated after mount. Re-measure
+  // when the first real slide arrives, otherwise the initial 0.4 scale can
+  // survive forever and crop the canvas in narrow windows.
+  }, [zoom, slide?.id]);
 
   // Exit inline text editing whenever the viewed slide changes.
   useEffect(() => { setEditingId(null); }, [current]);
@@ -118,10 +121,10 @@ export function Canvas({ zoom }: { zoom: number }) {
   const blocks = [...slide.blocks].sort((a, b) => a.z - b.z);
 
   return (
-    <div ref={boxRef} onPointerMove={onPointerMove} onPointerUp={endDrag} onPointerLeave={endDrag}
+    <div ref={boxRef} className="canvas-backdrop" onPointerMove={onPointerMove} onPointerUp={endDrag} onPointerLeave={endDrag}
       onPointerDown={() => { select([]); setEditingId(null); }}
-      style={{ position: 'relative', width: '100%', height: '100%', background: 'var(--color-paper-2)', overflow: 'hidden' }}>
-      <div className="stage-surface" style={{ position: 'absolute', top: '50%', left: '50%', width: STAGE_W, height: STAGE_H, transform: `translate(-50%, -50%) scale(${scale})`, transformOrigin: 'center center', background: slideBackground(slide.background), boxShadow: 'var(--shadow-card)' }}>
+      >
+      <div className="stage-surface" style={{ position: 'absolute', top: '50%', left: '50%', width: STAGE_W, height: STAGE_H, transform: `translate(-50%, -50%) scale(${scale})`, transformOrigin: 'center center', background: slideBackground(slide.background) }}>
         {slide.background.type === 'image' && slide.background.image && (
           <img src={slide.background.image} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: slide.background.imageFit }} />
         )}

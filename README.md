@@ -1,95 +1,103 @@
-# wai-pitch
+# WAI Design
 
-A self-hosted presentation service — a functional clone of Pitch.com — with a
-warm, editorial "Claude paper" design language. Create, edit, present and share
-decks; plus a full one-command **export** of an existing Pitch.com account and an
-**import** of that content into this app.
+WAI Design is a self-hosted visual studio for interface concepts, product
+prototypes, and presentations. It combines a precise 1920×1080 canvas with a
+calm, spacious product shell and AI-assisted first drafts.
 
-## What it does
+The product evolved from the original `wai-pitch` foundation. The proven
+editor, persistence, player, sharing, and Pitch import engine remain intact;
+the creation experience and visual system have been rebuilt around a broader
+design workflow.
 
-- **Dashboard / library** — teamspace sidebar with a nested folder tree, a
-  documents grid with live WYSIWYG thumbnails, create / rename / duplicate /
-  move / delete, "Recently deleted" trash with restore + delete-forever, search
-  and sort.
-- **Editor** — a fixed 1920×1080 canvas with block types **text, image, shape,
-  table, chart, embed**; drag / resize / rotate with snap guides; a slide panel
-  with drag-to-reorder, duplicate and delete; a properties inspector; undo/redo;
-  debounced autosave; per-slide background + speaker notes; zoom; keyboard
-  shortcuts.
-- **Player** — fullscreen present mode with keyboard navigation, `#N` deep
-  links, fade transitions, a progress bar, and one-click **PDF export** (print).
-- **Share** — a public read-only link at `/v/<token>`.
-- **Create with AI** — describe a deck and Claude drafts a structured outline
-  that's composed into positioned slides (needs `ANTHROPIC_API_KEY`).
+## Creation modes
 
-## Stack
+- **Interface** — opens with a desktop product concept, a mobile flow, and a UI
+  kit so product work starts from realistic structure.
+- **Presentation** — opens with a complete three-frame narrative rather than a
+  blank deck.
+- **Prototype** — opens with a three-step product flow designed for review and
+  iteration.
+- **Create with AI** — turns a prompt into a structured editable presentation
+  when `ANTHROPIC_API_KEY` is configured.
 
-Next.js 16 (App Router) · React 19 · TypeScript · Tailwind v4 (CSS-first) ·
-Zod 4 · SQLite (better-sqlite3 + Drizzle) · Zustand + zundo (undo/redo) ·
-dnd-kit · `@anthropic-ai/sdk`.
+Every starter is fully editable. Text, images, shapes, tables, charts, and
+embeds use the same WYSIWYG renderer in the editor, thumbnails, player, and
+public share view.
 
-Data lives in `data/wai-pitch.db` (auto-created); uploaded images in
-`data/uploads/`. No external services required to run.
+## Product capabilities
 
-## Scope & security
+- Liquid-glass navigation and controls with an unobstructed content canvas.
+- Large-library dashboard with search, folders, sort, trash, sharing, and
+  paged rendering for imported workspaces.
+- Drag, resize, rotate, layer, lock, duplicate, and inline-edit blocks.
+- Snap guides, keyboard nudging, undo/redo, debounced autosave, speaker notes,
+  and per-frame backgrounds.
+- Fullscreen presentation mode, deep links, PDF printing, and public read-only
+  links.
+- Full Pitch.com account import support, including folder hierarchy and
+  high-fidelity slide images.
 
-This is a **single-user, single-workspace** tool with **no authentication** — it
-is meant to run locally or behind your own access control. Rich-text HTML is
-sanitized on write and uploads are validated by magic bytes (raster images only,
-no SVG), so the public share view is safe to hand out, but the CRUD API is
-unauthenticated. **Do not expose the app itself to the open internet without
-adding an auth layer** (e.g. a reverse-proxy password or a Next.js middleware
-guard); anyone who can reach the API could edit or delete presentations.
-
-## Run
+## Run locally
 
 ```bash
 npm install
-npm run dev        # http://localhost:3000
+npm run dev
 ```
 
-Optional, for Create with AI:
+Open [http://localhost:3000](http://localhost:3000).
+
+Verification:
 
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-# optional: export ANTHROPIC_MODEL=claude-sonnet-5
+npm test
+npm run typecheck
+npm run build
 ```
+
+## Data and security
+
+SQLite data lives in `data/wai-pitch.db`; uploaded and imported media lives in
+`data/uploads/`. Both are intentionally excluded from Git.
+
+This remains a single-user workspace without application-level authentication.
+Do not expose it directly to the public internet: CRUD routes can modify or
+delete content. Put an authenticated reverse proxy or private network in front
+of it. The supplied Compose service binds only to `127.0.0.1:3000` for that
+reason.
+
+## Production container
+
+The image uses the official Node 24 Debian runtime and Next.js standalone
+output. The app persists data through a bind mount.
+
+```bash
+docker compose up -d --build
+docker compose ps
+curl http://127.0.0.1:3000/api/health
+```
+
+Add the public reverse proxy only after access control and TLS are configured.
 
 ## Architecture
 
-- A deck is **Zod-validated typed data** (`src/types/deck.ts`): a `Deck` has a
-  theme and `slides[]`; each `Slide` has a background, `notes`, and `blocks[]`;
-  each `Block` is a discriminated union positioned in absolute stage pixels.
-- Every surface renders through one fixed **1920×1080 `<Stage>`**
-  (`src/components/stage/`) that transform-scales to fit its container, so the
-  editor, player, share view and thumbnails are pixel-identical (WYSIWYG by
-  construction).
-- Persistence is a single `presentations` table storing the deck as JSON, plus
-  `folders` and `workspaces` (`src/lib/db/`, `src/lib/repo.ts`). Schema is
-  created idempotently on first connect — no migration step.
-- Editor state is a Zustand store wrapped with `zundo` for undo/redo
-  (`src/lib/editor-store.ts`); the top-level editor autosaves via
-  `PUT /api/presentations/:id`.
+- Next.js 16 App Router · React 19 · TypeScript · Tailwind CSS 4
+- SQLite via better-sqlite3 and Drizzle
+- Zod-validated deck data
+- Zustand + zundo editor state
+- dnd-kit ordering and gestures
+- Anthropic SDK for AI drafting
 
-## Export & import an existing Pitch.com account
+The central invariant is a single fixed 1920×1080 `Stage`. Every surface
+transform-scales that same renderer, so an edited frame and its presented frame
+remain pixel-identical.
 
-`tools/pitch-export/` reuses your logged-in Pitch session by launching a
-headless Chromium against a **copy** of your Chromium/Comet profile (your live
-browser is never touched), then:
+## Pitch import
 
-1. `02-export-objects.mjs` — pulls every object (folders, presentations,
-   teamspaces, styles) from Pitch's sync API → `pitch-export/decoded/`.
-2. `03-build-catalog.mjs` — assembles `pitch-export/catalog.{json,md}` (folder
-   tree, live vs. trashed presentations).
-3. `04-export-decks.mjs` — opens each deck and captures every slide as a
-   full-fidelity PNG plus the slide/block JSON (read from the app's IndexedDB).
-   Resumable; skips finished decks.
-
-Then bring it into the app:
+The existing `tools/pitch-export/` pipeline can export an authenticated Pitch
+workspace into `pitch-export/`. Import it with:
 
 ```bash
-npm run import:pitch   # mirrors the folder tree; each deck's slides become
-                       # full-fidelity image slides. Idempotent.
+npm run import:pitch
 ```
 
-See `docs/pitch-study.md` for how Pitch's data model and API were mapped.
+See `docs/pitch-study.md` for the mapped Pitch data model and API observations.

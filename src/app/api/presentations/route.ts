@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { createPresentation, listPresentations, deckOf } from '@/lib/repo';
+import { createPresentation, listPresentations, deckOf, FolderNotFoundError } from '@/lib/repo';
 import { Deck } from '@/types/deck';
+import { isProjectKind } from '@/lib/starter';
 
 export const runtime = 'nodejs';
 
@@ -23,7 +24,14 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const body = await req.json().catch(() => ({}));
+  const raw = await req.json().catch(() => ({}));
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return NextResponse.json({ error: 'invalid request body' }, { status: 400 });
+  }
+  const body = raw as Record<string, unknown>;
+  if (body.kind !== undefined && !isProjectKind(body.kind)) {
+    return NextResponse.json({ error: 'invalid project kind' }, { status: 400 });
+  }
   // If a deck is supplied, validate it (matches the PUT path) rather than
   // persisting something that would later silently reset to an empty deck.
   let deck;
@@ -33,6 +41,14 @@ export async function POST(req: Request) {
     deck = parsed.data;
   }
   const title = typeof body.title === 'string' ? body.title.slice(0, 200) : undefined;
-  const row = createPresentation({ title, folderId: body.folderId ?? null, deck });
-  return NextResponse.json({ id: row.id });
+  const folderId = typeof body.folderId === 'string' || body.folderId === null ? body.folderId : null;
+  try {
+    const row = createPresentation({ title, folderId, deck, kind: body.kind });
+    return NextResponse.json({ id: row.id });
+  } catch (cause) {
+    if (cause instanceof FolderNotFoundError) {
+      return NextResponse.json({ error: cause.message }, { status: 400 });
+    }
+    throw cause;
+  }
 }

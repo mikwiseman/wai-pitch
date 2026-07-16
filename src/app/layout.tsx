@@ -6,8 +6,8 @@ const inter = Inter({ subsets: ['latin', 'cyrillic'], variable: '--font-inter', 
 const fraunces = Fraunces({ subsets: ['latin'], variable: '--font-fraunces', display: 'swap', axes: ['opsz'] });
 
 export const metadata: Metadata = {
-  title: 'wai-pitch',
-  description: 'Presentations, the WaiWai way.',
+  title: 'WAI Design — Visual studio',
+  description: 'Design interfaces, shape presentations, and prototype product flows in one calm canvas.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

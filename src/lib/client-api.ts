@@ -1,5 +1,6 @@
 'use client';
 import type { Slide } from '@/types/deck';
+import type { ProjectKind } from '@/lib/starter';
 
 export type PresListItem = {
   id: string; title: string; folderId: string | null; workspaceId: string;
@@ -22,7 +23,7 @@ export const api = {
     if (opts.folderId !== undefined) p.set('folderId', opts.folderId ?? '');
     return jf<PresListItem[]>(`/api/presentations?${p.toString()}`);
   },
-  createPresentation: (body: { title?: string; folderId?: string | null } = {}) => jf<{ id: string }>(`/api/presentations`, { method: 'POST', body: JSON.stringify(body) }),
+  createPresentation: (body: { title?: string; folderId?: string | null; kind?: ProjectKind } = {}) => jf<{ id: string }>(`/api/presentations`, { method: 'POST', body: JSON.stringify(body) }),
   renamePresentation: (id: string, title: string) => jf(`/api/presentations/${id}`, { method: 'PUT', body: JSON.stringify({ title }) }),
   movePresentation: (id: string, folderId: string | null) => jf(`/api/presentations/${id}`, { method: 'PUT', body: JSON.stringify({ folderId }) }),
   trashPresentation: (id: string) => jf(`/api/presentations/${id}`, { method: 'DELETE' }),

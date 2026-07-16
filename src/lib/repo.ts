@@ -2,10 +2,17 @@ import 'server-only';
 import { and, eq, isNull, isNotNull, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { getDb, schema, DEFAULT_WORKSPACE_ID } from './db/client';
-import { Deck, emptyDeck, type Deck as DeckT } from '@/types/deck';
-import { starterDeck } from './starter';
+import { Deck, type Deck as DeckT } from '@/types/deck';
+import { DEFAULT_PROJECT_TITLES, starterDeck, type ProjectKind } from './starter';
 
 export { DEFAULT_WORKSPACE_ID };
+
+export class FolderNotFoundError extends Error {
+  constructor() {
+    super('folder not found');
+    this.name = 'FolderNotFoundError';
+  }
+}
 
 export function listWorkspaces() {
   return getDb().select().from(schema.workspaces).all();
@@ -75,21 +82,26 @@ export function getPresentationByShare(token: string): PresRow | undefined {
 }
 
 export function deckOf(row: PresRow): DeckT {
-  try { return Deck.parse(JSON.parse(row.content)); }
-  catch { return emptyDeck(); }
+  try {
+    return Deck.parse(JSON.parse(row.content));
+  } catch (cause) {
+    throw new Error(`Invalid deck data for presentation ${row.id}`, { cause });
+  }
 }
 
-export function createPresentation(opts: { title?: string; folderId?: string | null; deck?: DeckT; workspaceId?: string } = {}) {
+export function createPresentation(opts: { title?: string; folderId?: string | null; deck?: DeckT; kind?: ProjectKind; workspaceId?: string } = {}) {
   const now = Date.now();
   const workspaceId = opts.workspaceId ?? DEFAULT_WORKSPACE_ID;
-  // Ignore a bad folderId rather than stranding the deck in a nonexistent folder.
-  const folderId = folderOk(opts.folderId, workspaceId) ? (opts.folderId ?? null) : null;
-  const deck = opts.deck ?? starterDeck(opts.title ?? 'Untitled presentation');
+  const kind = opts.kind ?? 'presentation';
+  const title = opts.title ?? DEFAULT_PROJECT_TITLES[kind];
+  if (!folderOk(opts.folderId, workspaceId)) throw new FolderNotFoundError();
+  const folderId = opts.folderId ?? null;
+  const deck = opts.deck ?? starterDeck(title, kind);
   const row = {
     id: 'p_' + nanoid(12),
     workspaceId,
     folderId,
-    title: opts.title ?? 'Untitled presentation',
+    title,
     content: JSON.stringify(deck),
     shareToken: null as string | null,
     published: 0,
@@ -108,8 +120,8 @@ export function updatePresentation(id: string, patch: Partial<{ title: string; c
   const set: Record<string, unknown> = { updatedAt: Date.now() };
   if (patch.title !== undefined) set.title = patch.title;
   if (patch.folderId !== undefined) {
-    // Only accept a target folder that exists in the same workspace (or root).
-    set.folderId = folderOk(patch.folderId, cur.workspaceId) ? patch.folderId : null;
+    if (!folderOk(patch.folderId, cur.workspaceId)) throw new FolderNotFoundError();
+    set.folderId = patch.folderId;
   }
   if (patch.content !== undefined) set.content = JSON.stringify(Deck.parse(patch.content));
   getDb().update(schema.presentations).set(set).where(eq(schema.presentations.id, id)).run();

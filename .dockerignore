@@ -1,0 +1,11 @@
+.git
+.next
+node_modules
+data
+pitch-export
+tools/pitch-export
+.env
+.env.local
+*.log
+*.tsbuildinfo
+.DS_Store

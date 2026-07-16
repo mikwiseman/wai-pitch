@@ -24,11 +24,11 @@ export function SlidePanel() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', borderRight: '1px solid var(--color-line)', background: 'var(--color-paper)' }}>
-      <div style={{ padding: 10 }}>
-        <button className="btn" onClick={() => addSlide()} style={{ width: '100%', justifyContent: 'center' }}><Icon.Plus width={16} /> Add slide</button>
+    <div className="slide-panel">
+      <div className="slide-panel-header">
+        <button className="btn slide-add-button" onClick={() => addSlide()}><Icon.Plus width={15} /> Add frame</button>
       </div>
-      <div style={{ overflow: 'auto', padding: '0 10px 20px', flex: 1 }}>
+      <div className="slide-list">
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
           <SortableContext items={deck.slides.map((s) => s.id)} strategy={verticalListSortingStrategy}>
             {deck.slides.map((s, i) => (
@@ -49,13 +49,13 @@ function SlideRow({ id, index, active, onClick }: { id: string; index: number; a
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
   return (
-    <div ref={setNodeRef} style={{ ...style, display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 10 }}>
-      <div style={{ width: 18, textAlign: 'right', fontSize: 12, color: 'var(--color-ink-3)', paddingTop: 20, cursor: 'grab' }} {...attributes} {...listeners}>{index + 1}</div>
-      <div onClick={onClick} className="card" style={{ flex: 1, overflow: 'hidden', cursor: 'pointer', outline: active ? '2px solid var(--color-clay)' : 'none', position: 'relative' }}>
+    <div ref={setNodeRef} className="slide-row" style={style}>
+      <div className="slide-number" aria-label={`Reorder frame ${index + 1}`} {...attributes} {...listeners}>{String(index + 1).padStart(2, '0')}</div>
+      <div onClick={onClick} className={`slide-thumb-card${active ? ' is-active' : ''}`}>
         <Thumb slide={slide} />
-        <div style={{ position: 'absolute', top: 4, right: 4, display: 'flex', gap: 2, opacity: 0, transition: 'opacity 0.1s' }} className="row-actions">
-          <button className="btn btn-icon" onClick={(e) => { e.stopPropagation(); duplicateSlide(index); }} title="Duplicate" style={{ height: 24, width: 24, background: 'var(--color-white)' }}><Icon.Duplicate width={13} /></button>
-          {count > 1 && <button className="btn btn-icon" onClick={(e) => { e.stopPropagation(); deleteSlide(index); }} title="Delete" style={{ height: 24, width: 24, background: 'var(--color-white)' }}><Icon.Trash width={13} /></button>}
+        <div className="slide-row-actions">
+          <button className="btn btn-icon" onClick={(e) => { e.stopPropagation(); duplicateSlide(index); }} title="Duplicate" aria-label={`Duplicate frame ${index + 1}`} style={{ background: 'var(--color-white)' }}><Icon.Duplicate width={13} /></button>
+          {count > 1 && <button className="btn btn-icon" onClick={(e) => { e.stopPropagation(); deleteSlide(index); }} title="Delete" aria-label={`Delete frame ${index + 1}`} style={{ background: 'var(--color-white)' }}><Icon.Trash width={13} /></button>}
         </div>
       </div>
     </div>
