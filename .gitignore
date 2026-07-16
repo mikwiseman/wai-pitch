@@ -8,6 +8,7 @@ tools/pitch-export/.cache/
 .DS_Store
 .env
 .env.local
+Caddyfile.users
 .gstack/
 
 # build artifacts

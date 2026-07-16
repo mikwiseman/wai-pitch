@@ -60,15 +60,27 @@ SQLite data lives in `data/wai-pitch.db`; uploaded and imported media lives in
 `data/uploads/`. Both are intentionally excluded from Git.
 
 This remains a single-user workspace without application-level authentication.
-Do not expose it directly to the public internet: CRUD routes can modify or
-delete content. Put an authenticated reverse proxy or private network in front
-of it. The supplied Compose service binds only to `127.0.0.1:3000` for that
-reason.
+Do not expose the app container directly to the public internet: CRUD routes
+can modify or delete content. The supplied Compose stack keeps Next.js on
+`127.0.0.1:3000` and exposes only Caddy, which terminates HTTPS and requires
+HTTP Basic Auth for every route.
 
 ## Production container
 
 The image uses the official Node 24 Debian runtime and Next.js standalone
-output. The app persists data through a bind mount.
+output. The app persists data through a bind mount. Caddy 2.11.4 provisions and
+renews TLS for `design.waiwai.is`; its certificate state is kept in named
+volumes.
+
+Before starting the public stack, put the username and bcrypt password hash in
+an untracked `Caddyfile.users` file:
+
+```caddyfile
+mik $2a$14$...
+```
+
+Generate the value with `caddy hash-password`; never store the plaintext
+password in the repository.
 
 ```bash
 docker compose up -d --build
@@ -76,7 +88,8 @@ docker compose ps
 curl http://127.0.0.1:3000/api/health
 ```
 
-Add the public reverse proxy only after access control and TLS are configured.
+The authenticated production URL is
+[https://design.waiwai.is](https://design.waiwai.is).
 
 ## Architecture
 

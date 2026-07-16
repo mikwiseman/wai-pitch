@@ -19,3 +19,29 @@ services:
       timeout: 5s
       start_period: 20s
       retries: 3
+
+  caddy:
+    image: caddy:2.11.4-alpine
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./Caddyfile.users:/etc/caddy/users:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:2019/config/"]
+      interval: 20s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+volumes:
+  caddy_data:
+  caddy_config:

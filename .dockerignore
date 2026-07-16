@@ -6,6 +6,7 @@ pitch-export
 tools/pitch-export
 .env
 .env.local
+Caddyfile.users
 *.log
 *.tsbuildinfo
 .DS_Store
