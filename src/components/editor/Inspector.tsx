@@ -56,8 +56,8 @@ function Color({ value, onChange }: { value: string; onChange: (v: string) => vo
   const norm = value === 'transparent' ? '#ffffff' : value;
   return (
     <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-      <input aria-label="Pick color" type="color" value={/^#[0-9a-f]{6}$/i.test(norm) ? norm : '#000000'} onChange={(e) => onChange(e.target.value)} style={{ width: 44, height: 44, padding: 0, border: '1px solid var(--color-line-2)', borderRadius: 10, background: 'none' }} />
-      <input className="input" aria-label="Color value" value={value} onChange={(e) => onChange(e.target.value)} />
+      <input aria-label="Pick color" type="color" value={/^#[0-9a-f]{6}$/i.test(norm) ? norm : '#000000'} onChange={(e) => onChange(e.target.value)} style={{ width: 44, height: 44, flexShrink: 0, padding: 0, border: '1px solid var(--color-line-2)', borderRadius: 10, background: 'none' }} />
+      <input className="input" aria-label="Color value" value={value} onChange={(e) => onChange(e.target.value)} style={{ minWidth: 0 }} />
     </div>
   );
 }
