@@ -11,8 +11,13 @@ design.waiwai.is {
 		Referrer-Policy "strict-origin-when-cross-origin"
 		Permissions-Policy "camera=(), microphone=(), geolocation=()"
 		X-Frame-Options "SAMEORIGIN"
+		-X-Powered-By
 		-Server
 	}
 
 	reverse_proxy app:3000
+}
+
+http://157.180.117.15 {
+	redir https://design.waiwai.is{uri} permanent
 }
