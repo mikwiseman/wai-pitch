@@ -97,10 +97,6 @@ export function AuthScreen() {
             <h1>Make space<br />for the <em>idea.</em></h1>
             <p>Compose stories, interfaces, and prototypes in one airy, editable canvas.</p>
           </div>
-          <div className="auth-frame-stack">
-            <div className="auth-frame auth-frame--back"><span /><span /><b /></div>
-            <div className="auth-frame auth-frame--front"><small>01</small><strong>Everything stays<br />editable.</strong><i /></div>
-          </div>
         </div>
 
         <div className="auth-panel">
@@ -158,4 +154,3 @@ export function AuthScreen() {
     </main>
   );
 }
-

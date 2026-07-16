@@ -171,7 +171,6 @@ export function Dashboard({ user }: { user: { name: string; email: string; image
                 <option value="title">Title</option>
               </select>
               <button className="btn" onClick={() => setImportOpen(true)}><Icon.Upload width={16} /> Import</button>
-              <button className="btn btn-primary" onClick={() => openAi()}><Icon.Sparkle width={17} /> Create with AI</button>
               <div className="account-menu-wrap">
                 <button className="account-button" onClick={() => setAccountOpen((value) => !value)} aria-label="Account menu" aria-expanded={accountOpen}>
                   {user.image ? <img src={user.image} alt="" /> : <span>{initials(user.name || user.email)}</span>}
@@ -181,28 +180,17 @@ export function Dashboard({ user }: { user: { name: string; email: string; image
             </div>
           </header>
 
-          {view.kind === 'all' && !q && (
-            <section className="studio-hero">
-              <div className="hero-copy">
-                <div className="hero-kicker"><span /> FROM THOUGHT TO FORM</div>
-                <h2>Make the idea<br /><em>visible.</em></h2>
-                <p>Design interfaces, shape stories, and prototype the moments between them—all in one calm canvas.</p>
-              </div>
-              <form className="prompt-composer glass-panel" onSubmit={(event) => { event.preventDefault(); if (aiDraft.trim()) openAi(aiDraft); }}>
-                <div className="prompt-icon"><Icon.Sparkle width={19} /></div>
-                <input aria-label="Describe what you want to create" placeholder="Describe what you want to make…" value={aiDraft} onChange={(event) => setAiDraft(event.target.value)} />
-                <button type="submit" disabled={!aiDraft.trim()}>Generate <span>↗</span></button>
-                <div className="prompt-hint">Try “A product launch deck for an AI travel planner”</div>
-              </form>
-            </section>
-          )}
-
           {view.kind !== 'trash' && (
-            <section className="creation-section">
-              <div className="section-heading">
-                <div><span className="eyebrow">START WITH INTENT</span><h2>Choose a canvas</h2></div>
+            <section className="creation-hub glass-panel">
+              <div className="creation-hub-heading">
+                <div><span className="eyebrow">CREATE</span><h2>Start with an idea.</h2><p>Prompt WAI or open a focused, fully editable canvas.</p></div>
                 <button className="text-button" onClick={createFolder}><Icon.Folder width={16} /> New folder</button>
               </div>
+              <form className="prompt-composer" onSubmit={(event) => { event.preventDefault(); if (aiDraft.trim()) openAi(aiDraft); }}>
+                <Icon.Sparkle width={18} />
+                <input aria-label="Describe what you want to create" placeholder="Describe the interface, story, or flow…" value={aiDraft} onChange={(event) => setAiDraft(event.target.value)} />
+                <button type="submit" disabled={!aiDraft.trim()}>Generate <span>↗</span></button>
+              </form>
               <div className="mode-grid">
                 {CREATION_MODES.map((mode) => <ModeCard key={mode.kind} {...mode} onClick={() => void createProject(mode.kind)} />)}
               </div>
@@ -225,7 +213,6 @@ export function Dashboard({ user }: { user: { name: string; email: string; image
               </div>
             ) : visible.length === 0 ? (
               <div className="empty-state">
-                <div className="empty-mark"><Icon.Grid width={23} /></div>
                 <h3>{view.kind === 'trash' ? 'Nothing waiting here.' : q ? 'No matching work.' : 'A quiet canvas, ready when you are.'}</h3>
                 <p>{view.kind === 'trash' ? 'Deleted projects will appear here.' : 'Start with an interface, presentation, prototype, or a prompt.'}</p>
               </div>
@@ -287,16 +274,9 @@ function FolderNode({ folder, childrenOf, view, setView, onChange, depth }: { fo
 function ModeCard({ kind, label, description, eyebrow, icon, onClick }: (typeof CREATION_MODES)[number] & { onClick: () => void }) {
   return (
     <button className={`mode-card mode-card--${kind}`} onClick={onClick}>
-      <div className={`mode-preview mode-preview--${kind}`} aria-hidden>
-        <span className="preview-dot preview-dot--one" /><span className="preview-dot preview-dot--two" />
-        <span className="preview-line preview-line--one" /><span className="preview-line preview-line--two" /><span className="preview-line preview-line--three" />
-        <span className="preview-card preview-card--one" /><span className="preview-card preview-card--two" />
-      </div>
-      <div className="mode-card-body">
-        <span className="mode-icon">{icon}</span>
-        <span><small>{eyebrow}</small><strong>{label}</strong><em>{description}</em></span>
-        <b aria-hidden>↗</b>
-      </div>
+      <span className="mode-icon">{icon}</span>
+      <span className="mode-card-copy"><small>{eyebrow}</small><strong>{label}</strong><em>{description}</em></span>
+      <b aria-hidden>↗</b>
     </button>
   );
 }
@@ -410,7 +390,6 @@ function AiModal({ initialPrompt, onClose, onDone }: { initialPrompt: string; on
     <div className="modal-backdrop" onClick={onClose}>
       <div className="ai-modal glass-panel" role="dialog" aria-modal="true" aria-labelledby="ai-title" onClick={(event) => event.stopPropagation()}>
         <button className="modal-close" onClick={onClose} aria-label="Close"><Icon.Close width={18} /></button>
-        <div className="ai-modal-mark"><Icon.Sparkle width={22} /></div>
         <span className="eyebrow">CREATE WITH AI</span>
         <h2 id="ai-title">What are we making?</h2>
         <p>Describe the audience, goal, and feeling. WAI will shape a complete first draft you can edit.</p>
@@ -459,10 +438,9 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: (id: st
   return <div className="modal-backdrop" onClick={busy ? undefined : onClose}>
     <div className="import-modal glass-panel" role="dialog" aria-modal="true" aria-labelledby="import-title" onClick={(event) => event.stopPropagation()}>
       <button className="modal-close" onClick={onClose} disabled={busy} aria-label="Close"><Icon.Close width={18} /></button>
-      <div className="import-modal-mark"><Icon.Upload width={22} /></div>
-      <span className="eyebrow">EDITABLE IMPORT</span>
-      <h2 id="import-title">Bring the layers with you.</h2>
-      <p>Export a deck from Pitch as PowerPoint, then drop the <strong>.pptx</strong> here. Text, images, and basic shapes become native WAI Design objects.</p>
+      <span className="eyebrow">POWERPOINT IMPORT</span>
+      <h2 id="import-title">Import an editable deck.</h2>
+      <p>Drop a <strong>.pptx</strong> exported from Pitch. Text, images, and basic shapes stay editable; complex objects are preserved visually.</p>
 
       {!result ? <>
         <button className={`import-dropzone${dragging ? ' is-dragging' : ''}${file ? ' has-file' : ''}`} onClick={() => inputRef.current?.click()} onDragEnter={(event) => { event.preventDefault(); setDragging(true); }} onDragOver={(event) => event.preventDefault()} onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); choose(event.dataTransfer.files[0]); }}>
