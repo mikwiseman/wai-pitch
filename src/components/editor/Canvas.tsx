@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { STAGE_W, STAGE_H, type Block, type Slide, type Deck } from '@/types/deck';
 import { fitScale } from '@/lib/scale';
+import { canvasInsetForWidth } from '@/lib/canvas-layout.mjs';
 import { useEditor } from '@/lib/editor-store';
 import { BlockView, blockFrame } from '@/components/stage/BlockView';
 import { slideBackground } from '@/components/stage/SlideView';
@@ -25,7 +26,11 @@ export function Canvas({ zoom }: { zoom: number }) {
 
   useLayoutEffect(() => {
     const el = boxRef.current; if (!el) return;
-    const measure = () => { const r = el.getBoundingClientRect(); setScale(fitScale(r.width - 80, r.height - 80) * zoom); };
+    const measure = () => {
+      const r = el.getBoundingClientRect();
+      const inset = canvasInsetForWidth(r.width);
+      setScale(fitScale(r.width - inset, r.height - inset) * zoom);
+    };
     const ro = new ResizeObserver(measure); ro.observe(el); measure();
     return () => ro.disconnect();
   // The store starts without slides and is hydrated after mount. Re-measure
