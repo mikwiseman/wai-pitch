@@ -8,6 +8,7 @@ const parser = new XMLParser({
   attributeNamePrefix: '',
   textNodeName: '#text',
   alwaysCreateTextNode: true,
+  parseTagValue: false,
   parseAttributeValue: false,
   trimValues: false,
   isArray: (name) => ['g', 'text', 'tspan', 'image', 'rect', 'ellipse', 'line', 'path', 'polygon'].includes(name),

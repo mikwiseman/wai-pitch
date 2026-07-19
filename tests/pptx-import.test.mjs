@@ -72,3 +72,18 @@ test('the first text run font overrides the SVG fallback font', () => {
 
   assert.equal(text?.fontFamily, 'Helvetica Neue');
 });
+
+test('numeric-looking text runs remain visible text', () => {
+  const svg = `<svg width="960" height="540" data-ooxml-slide-cx="9144000" data-ooxml-slide-cy="5143500">
+    <g data-ooxml-shape-type="autoshape" data-ooxml-x="0" data-ooxml-y="0" data-ooxml-cx="4572000" data-ooxml-cy="914400" data-ooxml-shape-idx="0">
+      <text font-family="Helvetica Neue" fill="#111111">
+        <tspan><tspan font-size="24">Полные веса к </tspan><tspan font-size="24">27.07</tspan></tspan>
+      </text>
+    </g>
+  </svg>`;
+
+  const { slide } = svgSlideToDeckSlide(svg, { slideId: 'numeric-text' });
+  const text = slide.blocks.find((block) => block.type === 'text');
+
+  assert.match(text?.html ?? '', /27\.07/);
+});
