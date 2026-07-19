@@ -56,3 +56,19 @@ test('unsupported complex elements are reported instead of silently disappearing
   assert.deepEqual(report.unsupported, ['chart']);
 });
 
+test('the first text run font overrides the SVG fallback font', () => {
+  const svg = `<svg width="960" height="540" data-ooxml-slide-cx="9144000" data-ooxml-slide-cy="5143500">
+    <g data-ooxml-shape-type="autoshape" data-ooxml-x="0" data-ooxml-y="0" data-ooxml-cx="4572000" data-ooxml-cy="914400" data-ooxml-shape-idx="0">
+      <text font-family="Calibri, sans-serif" fill="#111111">
+        <tspan data-ooxml-para-align="l">
+          <tspan font-family="Helvetica Neue, Helvetica, Arial, sans-serif" data-ooxml-run-font="Helvetica Neue" font-size="24">Run font wins</tspan>
+        </tspan>
+      </text>
+    </g>
+  </svg>`;
+
+  const { slide } = svgSlideToDeckSlide(svg, { slideId: 'run-font' });
+  const text = slide.blocks.find((block) => block.type === 'text');
+
+  assert.equal(text?.fontFamily, 'Helvetica Neue');
+});

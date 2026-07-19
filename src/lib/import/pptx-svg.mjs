@@ -101,7 +101,15 @@ function textInfo(group) {
   const align = ({ ctr: 'center', r: 'right', just: 'justify' })[firstParagraph['data-ooxml-para-align']] || 'left';
   const anchor = group['data-ooxml-anchor'];
   const valign = anchor === 'ctr' ? 'middle' : anchor === 'b' ? 'bottom' : 'top';
-  const fontFamily = String(textNode['font-family'] || textNode['data-ooxml-font-face'] || 'Inter').split(',')[0].trim().replace(/^['"]|['"]$/g, '');
+  const fontFamily = String(
+    firstRun['data-ooxml-run-font']
+      || firstRun['font-family']
+      || firstParagraph['data-ooxml-run-font']
+      || firstParagraph['font-family']
+      || textNode['data-ooxml-font-face']
+      || textNode['font-family']
+      || 'Inter',
+  ).split(',')[0].trim().replace(/^['"]|['"]$/g, '');
   return {
     html,
     fontFamily,
@@ -221,4 +229,3 @@ export function svgSlideToDeckSlide(svgString, { slideId = crypto.randomUUID(), 
     fallbacks,
   };
 }
-
